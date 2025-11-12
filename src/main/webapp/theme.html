@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8" />
+    <title>Вибір теми (dark / light)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        /* 1) Базові змінні кольорів */
+        :root {
+          --bg: #ffffff;
+          --fg: #111111;
+          --card: #f4f4f5;
+          --accent: #2563eb;
+        }
+        /* 2) Тема light */
+        .theme-light {
+          --bg: #ffffff;
+          --fg: #111111;
+          --card: #f4f4f5;
+          --accent: #2563eb;
+        }
+        /* 3) Тема dark */
+        .theme-dark {
+          --bg: #0b0f14;
+          --fg: #e6edf3;
+          --card: #101721;
+          --accent: #7aa2f7;
+        }
+
+        /* 4) Застосування */
+        html, body { height: 100%; }
+        body {
+          margin: 0;
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          background: var(--bg);
+          color: var(--fg);
+          display: grid;
+          place-items: center;
+          padding: 24px;
+        }
+        .card {
+          width: min(560px, 100%);
+          background: var(--card);
+          border-radius: 14px;
+          padding: 18px 20px;
+          box-shadow: 0 8px 24px rgba(0,0,0,.12);
+        }
+        fieldset { border: none; padding: 0; margin: 0; }
+        legend { font-weight: 700; margin-bottom: 10px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .opt {
+          display: flex; gap: 10px; align-items: center;
+          padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.06);
+        }
+        .theme-dark .opt { background: rgba(255,255,255,.08); }
+        .hint { margin-top: 10px; opacity: .8; font-size: .95rem; }
+        a { color: var(--accent); }
+        .visually-hidden {
+          position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+          overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>Вибір теми</h1>
+    <form id="theme-form">
+        <fieldset>
+            <legend>Оберіть тему інтерфейсу:</legend>
+            <div class="row" role="radiogroup" aria-labelledby="legend-theme">
+                <label class="opt">
+                    <input type="radio" name="theme" value="light" />
+                    <span>Світла тема</span>
+                </label>
+                <label class="opt">
+                    <input type="radio" name="theme" value="dark" />
+                    <span>Темна тема</span>
+                </label>
+            </div>
+        </fieldset>
+        <p class="hint">
+            Вибір зберігається в cookie <code>theme</code> на 7 днів.
+            Після перезавантаження сторінки тема застосовується автоматично,
+            а активна радіо-кнопка буде вибрана й у фокусі.
+        </p>
+        <p class="hint">
+            Повернутися до калькулятора? — <a href="./">index.html</a>
+        </p>
+        <div aria-live="polite" class="visually-hidden" id="live"></div>
+    </form>
+</main>
+
+<script>
+    // --- cookie helpers ---
+    function setCookie(name, value, days) {
+      const maxAge = days * 24 * 60 * 60;
+      document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+    }
+    function getCookie(name) {
+      return document.cookie.split('; ').reduce((acc, kv) => {
+        const [k, v] = kv.split('=');
+        return k === name ? decodeURIComponent(v) : acc;
+      }, null);
+    }
+
+    // --- theme apply ---
+    function applyTheme(theme) {
+      const body = document.body;
+      body.classList.remove('theme-light', 'theme-dark');
+      body.classList.add(theme === 'dark' ? 'theme-dark' : 'theme-light');
+      // позначити радіо і сфокусувати
+      const radio = document.querySelector(`input[name="theme"][value="${theme}"]`);
+      if (radio) {
+        radio.checked = true;
+        // невелика затримка, щоб браузер встиг розмітити елементи
+        setTimeout(() => radio.focus(), 0);
+      }
+      const live = document.getElementById('live');
+      if (live) live.textContent = `Тема застосована: ${theme}`;
+    }
+
+    // --- init on load ---
+    (function init() {
+      // дефолт — light; можна врахувати prefers-color-scheme, якщо cookie нема
+      let theme = getCookie('theme');
+      if (!theme) {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        theme = prefersDark ? 'dark' : 'light';
+      }
+      applyTheme(theme);
+
+      // повісити обробники на радіо
+      document.querySelectorAll('input[name="theme"]').forEach(r => {
+        r.addEventListener('change', (e) => {
+          const value = e.target.value === 'dark' ? 'dark' : 'light';
+          setCookie('theme', value, 7);      // зберегти на 7 днів
+          applyTheme(value);                 // застосувати негайно
+        });
+      });
+    })();
+</script>
+</body>
+</html>
